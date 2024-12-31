@@ -9,20 +9,26 @@ import spectral
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn.metrics import mean_squared_error
+from PIL import Image
 
-# Load the hyperspectral image (ENVI format)
-img = spectral.open_image('C:/Users/Morteza/OneDrive/Desktop/PhD/New_Data/8cal_Seurat_AFTER.hdr')  # Load ENVI format image
-data = img.load()  # Load the data into memory as a NumPy array
-data = data[:,:,0:151]
+# Load the hyperspectral image 
+image = Image.open("starry_night.png")  
+data = np.array(image)  
+
+if len(data.shape) == 2:  # Grayscale
+    data = data[:, :, np.newaxis]
+
+
 # Reshape the data to 2D (samples, bands)
 n_samples, n_lines, n_bands = data.shape
 reshaped_data = data.reshape((n_samples * n_lines, n_bands))
+reshaped_data = reshaped_data/255.0
 
 # Center the data by subtracting the mean of each band (feature)
 mean_centered_data = reshaped_data - np.mean(reshaped_data, axis=0)
 
 # Apply PCA using SVD
-n_components = 6  # First 6 principal components
+n_components = 3  
 pca = PCA(n_components=n_components)
 pca_data = pca.fit_transform(mean_centered_data)
 
@@ -33,10 +39,16 @@ pca_images = pca_data.reshape((n_samples, n_lines, n_components))
 fig, axes = plt.subplots(2, 3, figsize=(15, 10))
 axes = axes.ravel()
 
+pca_images_normalized = (pca_images - np.min(pca_images, axis=(0, 1))) / \
+                        (np.max(pca_images, axis=(0, 1)) - np.min(pca_images, axis=(0, 1)))
+
 for i in range(n_components):
-    axes[i].imshow(pca_images[:, :, i], cmap='gray')
+    pc_image = pca_images_normalized[:, :, i]
+    im = axes[i].imshow(pc_image, cmap='viridis')  # Use a color map like 'viridis'
     axes[i].set_title(f'Principal Component {i+1}')
     axes[i].axis('off')
+    fig.colorbar(im, ax=axes[i], orientation='vertical')  # Add a color bar for reference
+
 
 plt.tight_layout()
 plt.show()
